@@ -56,6 +56,7 @@ export default function App() {
   const [authMessage, setAuthMessage] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const [items, setItems] = useState<Item[]>(demoItems);
+  const [liveStats, setLiveStats] = useState<{ communityPosts: number; foundItems: number } | null>(null);
   const [activeTab, setActiveTab] = useState<"all"|"lost"|"found"|"mine">("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All categories");
@@ -70,6 +71,42 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("campuskind-theme", theme);
   }, [theme]);
+
+  // Fetch public statistics even before a visitor logs in, then refresh every 30 seconds.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshLiveStats() {
+      if (!supabase) {
+        if (!cancelled) setLiveStats(null);
+        return;
+      }
+
+      const [allResult, foundResult] = await Promise.all([
+        supabase.from("items").select("id", { count: "exact", head: true }),
+        supabase.from("items").select("id", { count: "exact", head: true }).eq("status", "found"),
+      ]);
+
+      if (cancelled) return;
+      if (!allResult.error && !foundResult.error) {
+        setLiveStats({
+          communityPosts: allResult.count ?? 0,
+          foundItems: foundResult.count ?? 0,
+        });
+      }
+    }
+
+    void refreshLiveStats();
+    const timer = window.setInterval(() => void refreshLiveStats(), 30_000);
+    const onFocus = () => void refreshLiveStats();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   useEffect(() => {
     if (session?.user) {
@@ -226,8 +263,8 @@ export default function App() {
               <h1>Lost something?<br/><em>Let’s bring it</em><br/>back to you.</h1>
               <p>A little campus kindness goes a long way. Find what’s missing, return what you’ve found, and help your community look out for each other.</p>
               <div className="visual-stats">
-                <div><strong>{items.length.toString().padStart(2,"0")}</strong><span>Community posts</span></div>
-                <div><strong>{foundCount.toString().padStart(2,"0")}</strong><span>Items found</span></div>
+                <div><strong>{liveStats ? liveStats.communityPosts.toString().padStart(2,"0") : "—"}</strong><span>Community posts</span></div>
+                <div><strong>{liveStats ? liveStats.foundItems.toString().padStart(2,"0") : "—"}</strong><span>Items found</span></div>
                 <div><strong>01</strong><span>Campus, one team</span></div>
               </div>
             </div>
