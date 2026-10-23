@@ -191,7 +191,7 @@ export default function App() {
       {!session ? (
         <main className="auth-layout">
           <section className="auth-visual">
-            <div className="auth-topbrand"><div className="brand-mark">ck</div><span>CampusKind</span><span className="beta-pill">CAMPUS COMMUNITY</span></div>
+            <button type="button" className="auth-topbrand logo-refresh" onClick={() => window.location.reload()} aria-label="Refresh CampusKind" title="Refresh page"><span className="brand-mark">ck</span><span>CampusKind</span><span className="beta-pill">CAMPUS COMMUNITY</span></button>
             <div className="visual-copy">
               <div className="eyebrow"><span className="live-dot"/> MADE FOR YOUR CAMPUS</div>
               <h1>Lost something?<br/><em>Let’s bring it</em><br/>back to you.</h1>
