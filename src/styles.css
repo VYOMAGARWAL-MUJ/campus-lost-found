@@ -51,31 +51,74 @@
 .profile-logout-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--red-soft);border-radius:9px;background:var(--red-soft);color:var(--red);padding:11px 12px;font-size:12px;font-weight:700}
 .profile-logout-button:hover{filter:brightness(1.06)}
 @media(max-width:700px){.profile-dropdown{right:-4px;top:calc(100% + 9px)}.top-avatar{display:grid}}
-/* CampusKind: readable category dropdown in dark mode */
-.dark select,
-.dark select option,
-.dark .category-filter,
-.dark .category-filter option {
-  background-color: #18212b !important;
-  color: #f5f7fa !important;
-  -webkit-text-fill-color: #f5f7fa;
-}
 
-/* Dropdown border and focus state */
-.dark select {
-  border-color: #344253 !important;
-  color-scheme: dark;
-}
+/* CampusKind motion system: login entrance, ambient movement, and dashboard transitions */
+@keyframes ckFadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ckFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ckSlideRight { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ckSlideLeft { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ckFloat { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
+@keyframes ckGlow { 0%,100% { box-shadow: 0 0 0 0 #b6f36a00; } 50% { box-shadow: 0 0 28px 2px #b6f36a24; } }
+@keyframes ckPulseDot { 0%,100% { opacity: .65; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.12); } }
+@keyframes ckShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-.dark select option:checked {
-  background-color: #365f2b !important;
-  color: #ffffff !important;
-}
+.auth-layout { animation: ckFadeIn .65s ease-out both; }
+.auth-visual { animation: ckFadeIn .8s ease-out both; }
+.auth-topbrand { animation: ckFadeUp .65s .08s ease-out both; }
+.visual-copy .eyebrow { animation: ckFadeUp .55s .18s ease-out both; }
+.visual-copy h1 { animation: ckFadeUp .72s .28s cubic-bezier(.2,.75,.25,1) both; }
+.visual-copy > p { animation: ckFadeUp .65s .42s ease-out both; }
+.visual-stats { animation: ckFadeUp .65s .55s ease-out both; }
+.floating-item { animation: ckFloat 5s ease-in-out infinite, ckFadeIn .9s .5s ease-out both; will-change: transform; }
+.float-two { animation-delay: .8s, .65s; }
+.visual-bottom { animation: ckFadeIn 1s .75s ease-out both; }
+.auth-panel { animation: ckSlideRight .75s .12s cubic-bezier(.2,.75,.25,1) both; }
+.auth-panel-top { animation: ckFadeIn .55s .25s ease-out both; }
+.auth-form-wrap > * { animation: ckFadeUp .55s ease-out both; }
+.auth-form-wrap > *:nth-child(1) { animation-delay: .22s; }
+.auth-form-wrap > *:nth-child(2) { animation-delay: .28s; }
+.auth-form-wrap > *:nth-child(3) { animation-delay: .34s; }
+.auth-form-wrap > *:nth-child(4) { animation-delay: .4s; }
+.auth-form-wrap > *:nth-child(5) { animation-delay: .46s; }
+.auth-form-wrap > *:nth-child(6) { animation-delay: .52s; }
+.auth-form-wrap > *:nth-child(7) { animation-delay: .58s; }
+.auth-form-wrap > *:nth-child(8) { animation-delay: .64s; }
+.auth-form input, .auth-form select { transition: border-color .2s ease, box-shadow .2s ease, background-color .25s ease, transform .2s ease; }
+.auth-form input:focus { transform: translateY(-1px); box-shadow: 0 0 0 4px var(--accent-soft); }
+.auth-form .primary-btn { transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; animation: ckGlow 3.8s 1.2s ease-in-out infinite; }
+.auth-form .primary-btn:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.auth-form .primary-btn svg { transition: transform .2s ease; }
+.auth-form .primary-btn:hover svg { transform: translateX(4px); }
+.live-dot { animation: ckPulseDot 2.4s ease-in-out infinite; }
 
-/* Light mode remains readable */
-.light select,
-.light select option {
-  background-color: #ffffff;
-  color: #17231a;
-  -webkit-text-fill-color: #17231a;
+/* The dashboard animates in after Continue or after logging out and back in. */
+.dashboard-layout { animation: ckFadeIn .38s ease-out both; }
+.sidebar { animation: ckSlideLeft .55s cubic-bezier(.2,.75,.25,1) both; }
+.main-area { animation: ckFadeUp .55s .08s ease-out both; }
+.topbar { animation: ckFadeIn .55s .12s ease-out both; }
+.welcome-row { animation: ckFadeUp .6s .16s ease-out both; }
+.stats-grid .stat-card { animation: ckFadeUp .58s ease-out both; }
+.stats-grid .stat-card:nth-child(1) { animation-delay: .2s; }
+.stats-grid .stat-card:nth-child(2) { animation-delay: .29s; }
+.stats-grid .stat-card:nth-child(3) { animation-delay: .38s; }
+.community-banner { animation: ckFadeUp .65s .42s ease-out both; }
+.listings-section { animation: ckFadeUp .65s .5s ease-out both; }
+.items-grid .item-card { animation: ckFadeUp .48s ease-out both; }
+.items-grid .item-card:nth-child(3n+1) { animation-delay: .06s; }
+.items-grid .item-card:nth-child(3n+2) { animation-delay: .13s; }
+.items-grid .item-card:nth-child(3n) { animation-delay: .2s; }
+.stat-card, .item-card, .community-banner, .banner-btn, .side-nav button { transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+@media (hover:hover) and (pointer:fine) {
+  .stat-card:hover { transform: translateY(-3px); }
+  .item-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .side-nav button:hover { transform: translateX(3px); }
+  .banner-btn:hover { transform: translateY(-2px); }
+}
+.modal-backdrop { animation: ckFadeIn .18s ease-out both; }
+.report-modal { animation: ckFadeUp .28s cubic-bezier(.2,.75,.25,1) both; }
+.profile-dropdown { animation: ckFadeUp .18s ease-out both; transform-origin: top right; }
+
+/* Keep motion comfortable for users who request reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
