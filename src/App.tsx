@@ -9,7 +9,7 @@ import { collegeDomain, isCollegeEmail, isSupabaseConfigured, supabase } from ".
 
 type ItemStatus = "lost" | "found";
 type Item = {
-  id: string; user_id?: string | null; status: ItemStatus; title: string; category: string;
+  id: string; user_id?: string | null; status: ItemStatus; is_closed?: boolean; title: string; category: string;
   description: string; location: string; item_date: string; phone: string;
   image_url?: string | null; created_at?: string; contact_name?: string; contact_email?: string;
 };
@@ -137,6 +137,33 @@ export default function App() {
     setAuthEmail("");
     setAuthPhone("");
   }
+  async function toggleItemClosed(item: Item) {
+    if (!profile?.email) {
+      setNotice("Please enter your profile details before managing listings.");
+      return;
+    }
+    const nextClosed = !item.is_closed;
+    setNotice("");
+    try {
+      if (supabase && !item.id.startsWith("demo-")) {
+        const { error } = await supabase
+          .from("items")
+          .update({ is_closed: nextClosed })
+          .eq("id", item.id)
+          .eq("contact_email", profile.email);
+        if (error) throw error;
+        await loadItems();
+      } else {
+        setItems(previous => previous.map(entry => entry.id === item.id ? { ...entry, is_closed: nextClosed } : entry));
+      }
+      setNotice(nextClosed
+        ? (item.status === "lost" ? "Marked as resolved: the lost item has been found." : "Marked as resolved: the found item has been returned.")
+        : "Request reopened and visible as active again.");
+    } catch (err: any) {
+      setNotice(err?.message || "Could not update this request. Check your Supabase items-table permissions and migration.");
+    }
+  }
+
   async function saveItem(e: FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.description.trim() || !form.location.trim() || !form.phone.trim()) {
@@ -147,7 +174,7 @@ export default function App() {
     const newItem: Item = { id: crypto.randomUUID(), status:formStatus, title:form.title.trim(), category:form.category,
       description:form.description.trim(), location:form.location.trim(), item_date:form.item_date, phone:form.phone.replace(/\D/g,""),
       image_url:form.image_url.trim() || null, contact_name:profile?.username || authName || "You",
-      contact_email:profile?.email || authEmail.trim().toLowerCase(), user_id:null };
+      contact_email:profile?.email || authEmail.trim().toLowerCase(), user_id:null, is_closed:false };
     try {
       if (supabase) {
         const { error } = await supabase.from("items").insert({
@@ -162,6 +189,7 @@ export default function App() {
           item_date: newItem.item_date,
           phone: newItem.phone,
           image_url: newItem.image_url,
+          is_closed: false,
         });
         if (error) throw error;
         await loadItems();
@@ -280,7 +308,7 @@ export default function App() {
                 <div className="filters-row"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items, places, descriptions…" /><kbd>⌘ K</kbd></div><div className="segmented"><button className={activeTab==="all"?"selected":""} onClick={()=>setActiveTab("all")}>All</button><button className={activeTab==="lost"?"selected":""} onClick={()=>setActiveTab("lost")}>Lost</button><button className={activeTab==="found"?"selected":""} onClick={()=>setActiveTab("found")}>Found</button></div></div>
                 {notice && <div className="notice"><Check size={16}/><span>{notice}</span><button onClick={()=>setNotice("")}><X size={15}/></button></div>}
                 {visibleItems.length===0 ? <div className="empty-state"><div className="empty-icon"><Search size={24}/></div><h3>No items found</h3><p>Try another search or category, or be the first to post one.</p><button className="primary-btn" onClick={()=>{setFormStatus("lost");setShowForm(true)}}><Plus size={16}/> Create a listing</button></div> :
-                  <div className="items-grid">{visibleItems.map((item,index)=><article className="item-card" key={item.id}><div className={`item-art art-${index%6}`}>{item.image_url?<img src={item.image_url} alt={item.title}/>:<ItemIcon category={item.category}/>}<span className={`status-pill ${item.status}`}>{item.status==="lost"?<><Search size={12}/> LOST</>:<><Check size={12}/> FOUND</>}</span><button className="save-item" title="Listing details"><Eye size={16}/></button></div><div className="item-content"><div className="item-category">{item.category}</div><h3>{item.title}</h3><p className="item-description">{item.description}</p><div className="item-meta"><span><MapPin size={14}/>{item.location}</span><span><Clock3 size={14}/>{dateLabel(item.item_date)}</span></div><div className="item-card-bottom"><div className="item-owner"><div className="avatar small-avatar">{initials(item.contact_name || "C")}</div><div><strong>{item.contact_name || "Campus member"}</strong><span>Campus member</span></div></div><a className="whatsapp-btn" href={whatsappUrl(item.phone,item.title)} target="_blank" rel="noreferrer" aria-label={`Contact ${item.contact_name} on WhatsApp`}><MessageCircle size={16}/> WhatsApp</a></div></div></article>)}</div>
+                  <div className="items-grid">{visibleItems.map((item,index)=><article className="item-card" key={item.id}><div className={`item-art art-${index%6}`}>{item.image_url?<img src={item.image_url} alt={item.title}/>:<ItemIcon category={item.category}/>}<span className={`status-pill ${item.is_closed ? "closed" : item.status}`}>{item.is_closed ? <><Check size={12}/> CLOSED</> : item.status==="lost"?<><Search size={12}/> LOST</>:<><Check size={12}/> FOUND</>}</span><button className="save-item" title="Listing details"><Eye size={16}/></button></div><div className="item-content"><div className="item-category">{item.category}</div><h3>{item.title}</h3><p className="item-description">{item.description}</p><div className="item-meta"><span><MapPin size={14}/>{item.location}</span><span><Clock3 size={14}/>{dateLabel(item.item_date)}</span></div><div className="item-card-bottom"><div className="item-owner"><div className="avatar small-avatar">{initials(item.contact_name || "C")}</div><div><strong>{item.contact_name || "Campus member"}</strong><span>{item.is_closed ? "Request resolved" : "Campus member"}</span></div></div>{item.is_closed ? <span className="resolved-label"><Check size={14}/> Resolved</span> : <a className="whatsapp-btn" href={whatsappUrl(item.phone,item.title)} target="_blank" rel="noreferrer" aria-label={`Contact ${item.contact_name} on WhatsApp`}><MessageCircle size={16}/> WhatsApp</a>}</div>{activeTab==="mine" && item.contact_email?.toLowerCase()===profile?.email?.toLowerCase() && <button type="button" className={`resolve-request-btn ${item.is_closed ? "reopen" : ""}`} onClick={() => void toggleItemClosed(item)}>{item.is_closed ? <><ArrowLeft size={15}/> Reopen request</> : <><Check size={15}/> {item.status === "lost" ? "I found this item — close request" : "Item returned — close request"}</>}</button>}</div></article>)}</div>
                 }
               </section>
               <footer className="page-footer"><span>Made with <span className="footer-heart">♥</span> for campus kindness.</span><span><ShieldCheck size={13}/> Be kind. Verify before you meet.</span></footer>
