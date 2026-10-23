@@ -9,9 +9,9 @@ import { collegeDomain, isCollegeEmail, isSupabaseConfigured, supabase } from ".
 
 type ItemStatus = "lost" | "found";
 type Item = {
-  id: string; user_id?: string; status: ItemStatus; title: string; category: string;
+  id: string; user_id?: string | null; status: ItemStatus; title: string; category: string;
   description: string; location: string; item_date: string; phone: string;
-  image_url?: string | null; created_at?: string; contact_name?: string;
+  image_url?: string | null; created_at?: string; contact_name?: string; contact_email?: string;
 };
 type Profile = { id: string; username: string; email: string; phone?: string | null };
 
@@ -44,16 +44,16 @@ function whatsappUrl(phone: string, title: string) {
 
 export default function App() {
   const [theme, setTheme] = useState<"dark"|"light">(() => (localStorage.getItem("campuskind-theme") as "dark"|"light") || "dark");
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("campuskind-visitor") || "null"); } catch { return null; }
+  });
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady, setAuthReady] = useState(true);
   const [authEmail, setAuthEmail] = useState("");
   const [authName, setAuthName] = useState("");
   const [authPhone, setAuthPhone] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
   const [items, setItems] = useState<Item[]>(demoItems);
   const [activeTab, setActiveTab] = useState<"all"|"lost"|"found"|"mine">("all");
   const [search, setSearch] = useState("");
@@ -71,94 +71,70 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!supabase) { setAuthReady(true); return; }
-    supabase.auth.getSession().then(async ({data}) => {
-      setSession(data.session);
-      if (data.session?.user) await loadProfile(data.session.user.id, data.session.user.email ?? "");
-      setAuthReady(true);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      if (!nextSession) setProfile(null);
-      else {
-        // Avoid awaiting Supabase calls inside the auth callback.
-        setTimeout(() => loadProfile(nextSession.user.id, nextSession.user.email ?? ""), 0);
-      }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (session?.user) loadItems();
+    if (session?.user) {
+      const user = session.user;
+      setProfile({
+        id: user.id,
+        username: user.user_metadata?.username || user.email.split("@")[0],
+        email: user.email,
+        phone: user.user_metadata?.phone || "",
+      });
+      if (supabase) void loadItems();
+    } else {
+      setProfile(null);
+    }
   }, [session?.user?.id]);
 
-  async function loadProfile(userId: string, email: string) {
-    if (!supabase) return;
-    const { data } = await supabase.from("profiles").select("id,username,email,phone").eq("id", userId).maybeSingle();
-    if (data) setProfile(data as Profile);
-    else setProfile({ id:userId, username: email.split("@")[0], email, phone:"" });
-  }
   async function loadItems() {
     if (!supabase) return;
-    const { data, error } = await supabase.from("items").select("*, profiles(username)").order("created_at", {ascending:false});
-    if (!error && data) setItems(data.map((row:any)=>({...row, contact_name:row.profiles?.username || "Campus member"})) as Item[]);
-    else if (error) setNotice(`Could not load listings: ${error.message}`);
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setItems(data as Item[]);
+    } else if (error) {
+      setNotice(`Could not load shared listings: ${error.message}`);
+    }
   }
+
   async function login(e: FormEvent) {
     e.preventDefault();
     setAuthMessage("");
 
-    if (!isCollegeEmail(authEmail)) {
-      setAuthMessage(`Use your college email ending in @${collegeDomain}.`);
+    const email = authEmail.trim().toLowerCase();
+    if (!isCollegeEmail(email)) {
+      setAuthMessage(`Use an email ending exactly in @${collegeDomain}.`);
       return;
     }
     if (!authName.trim()) {
       setAuthMessage("Please enter your name.");
       return;
     }
-    if (!isSupabaseConfigured || !supabase) {
-      setAuthMessage("Connect Supabase first. Check your environment variables.");
-      return;
-    }
 
-    setAuthBusy(true);
-    try {
-      const email = authEmail.trim().toLowerCase();
-
-      if (!otpSent) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
-            data: { username: authName.trim(), phone: authPhone.trim() },
-          },
-        });
-        if (error) throw error;
-        setOtpSent(true);
-        setAuthMessage("A verification code has been requested. Check your college inbox.");
-      } else {
-        const cleanOtp = otp.replace(/\s/g, "");
-        if (!/^\d{6}$/.test(cleanOtp)) {
-          setAuthMessage("Enter the 6-digit code from your email.");
-          return;
-        }
-        const { error } = await supabase.auth.verifyOtp({
-          email,
-          token: cleanOtp,
-          type: "email",
-        });
-        if (error) throw error;
-        setAuthMessage("Email verified successfully.");
-      }
-    } catch (err: any) {
-      setAuthMessage(err.message || "Authentication failed. Please try again.");
-    } finally {
-      setAuthBusy(false);
-    }
+    // This no-auth visitor profile is not proof that the visitor owns this email.
+    const visitor = {
+      user: {
+        id: email,
+        email,
+        user_metadata: { username: authName.trim(), phone: authPhone.trim() },
+      },
+    };
+    localStorage.setItem("campuskind-visitor", JSON.stringify(visitor));
+    setProfile({ id: email, username: authName.trim(), email, phone: authPhone.trim() });
+    setSession(visitor);
+    setAuthMessage("");
+    if (supabase) void loadItems();
   }
+
   async function signOut() {
-    if (supabase) await supabase.auth.signOut();
-    setSession(null); setProfile(null); setActiveTab("all");
+    localStorage.removeItem("campuskind-visitor");
+    setSession(null);
+    setProfile(null);
+    setActiveTab("all");
+    setAuthName("");
+    setAuthEmail("");
+    setAuthPhone("");
   }
   async function saveItem(e: FormEvent) {
     e.preventDefault();
@@ -169,13 +145,22 @@ export default function App() {
     setFormBusy(true); setNotice("");
     const newItem: Item = { id: crypto.randomUUID(), status:formStatus, title:form.title.trim(), category:form.category,
       description:form.description.trim(), location:form.location.trim(), item_date:form.item_date, phone:form.phone.replace(/\D/g,""),
-      image_url:form.image_url.trim() || null, contact_name:profile?.username || authName || "You", user_id:session?.user?.id };
+      image_url:form.image_url.trim() || null, contact_name:profile?.username || authName || "You",
+      contact_email:profile?.email || authEmail.trim().toLowerCase(), user_id:null };
     try {
-      if (supabase && session?.user) {
+      if (supabase) {
         const { error } = await supabase.from("items").insert({
-          user_id:session.user.id, status:newItem.status, title:newItem.title, category:newItem.category,
-          description:newItem.description, location:newItem.location, item_date:newItem.item_date,
-          phone:newItem.phone, image_url:newItem.image_url
+          user_id: null,
+          contact_name: newItem.contact_name,
+          contact_email: newItem.contact_email,
+          status: newItem.status,
+          title: newItem.title,
+          category: newItem.category,
+          description: newItem.description,
+          location: newItem.location,
+          item_date: newItem.item_date,
+          phone: newItem.phone,
+          image_url: newItem.image_url,
         });
         if (error) throw error;
         await loadItems();
@@ -191,11 +176,11 @@ export default function App() {
   const visibleItems = useMemo(() => items.filter(item => {
     if (activeTab==="lost" && item.status!=="lost") return false;
     if (activeTab==="found" && item.status!=="found") return false;
-    if (activeTab==="mine" && item.user_id!==session?.user?.id) return false;
+    if (activeTab==="mine" && item.contact_email?.toLowerCase() !== profile?.email?.toLowerCase()) return false;
     if (categoryFilter!=="All categories" && item.category!==categoryFilter) return false;
     const haystack = `${item.title} ${item.description} ${item.location} ${item.category}`.toLowerCase();
     return haystack.includes(search.toLowerCase());
-  }), [items, activeTab, categoryFilter, search, session?.user?.id]);
+  }), [items, activeTab, categoryFilter, search, profile?.email]);
   const lostCount = items.filter(i=>i.status==="lost").length;
   const foundCount = items.filter(i=>i.status==="found").length;
 
@@ -227,43 +212,16 @@ export default function App() {
               <div className="form-icon"><ShieldCheck size={23}/></div>
               <p className="eyebrow">A SAFE SPACE FOR YOUR CAMPUS</p>
               <h2>Welcome to your<br/>campus community.</h2>
-              <p className="muted auth-intro">Verify your college email with a one-time code to report an item or help someone find theirs.</p>
+              <p className="muted auth-intro">Sign in with your college email to report an item or help someone find theirs.</p>
               <form onSubmit={login} className="auth-form">
                 <label>Your name<input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="e.g. Aanya Sharma" autoComplete="name" required /></label>
                 <label>College email address<div className="input-with-icon"><UserRound size={17}/><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder={`you@${collegeDomain}`} autoComplete="email" required /></div></label>
                 <label>Phone number <span className="optional">(optional)</span><div className="input-with-icon"><Smartphone size={17}/><input type="tel" value={authPhone} onChange={e=>setAuthPhone(e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" /></div></label>
-                {otpSent && (
-                  <label>
-                    6-digit verification code
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      pattern="[0-9]{6}"
-                      value={otp}
-                      onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="Enter your OTP"
-                      required
-                    />
-                  </label>
-                )}
-                <button className="primary-btn full-btn" disabled={authBusy}>
-                  {authBusy ? "Please wait…" : otpSent ? <>Verify OTP <ArrowRight size={17}/></> : <>Send OTP <ArrowRight size={17}/></>}
-                </button>
-                {otpSent && (
-                  <button type="button" className="secondary-btn" onClick={() => {
-                    setOtpSent(false);
-                    setOtp("");
-                    setAuthMessage("");
-                  }}>
-                    Use a different email
-                  </button>
-                )}
+                <button className="primary-btn full-btn" disabled={authBusy}>{<>Continue <ArrowRight size={17}/></>}</button>
               </form>
-              {authMessage && <div className={`auth-message ${authMessage.includes("requested")?"success":""}`}>{authMessage}</div>}
+              {authMessage && <div className={`auth-message ${authMessage.startsWith("Check")?"success":""}`}>{authMessage}</div>}
               {!isSupabaseConfigured && <div className="demo-notice"><CircleHelp size={16}/><span><strong>Preview mode</strong><br/>The sign-in flow becomes real after you add your Supabase keys. You can explore the interface after setup.</span></div>}
-              <p className="terms-note"><ShieldCheck size={14}/> College email verification helps keep this community campus-only.</p>
+              <p className="terms-note"><ShieldCheck size={14}/> Enter your MUJ email to continue. Email ownership is not verified.</p>
             </div>
             <div className="auth-panel-bottom"><span>© 2026 CampusKind</span><button onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={14}/>:<Moon size={14}/>} {theme==="dark"?"Light":"Dark"} mode</button></div>
           </section>
