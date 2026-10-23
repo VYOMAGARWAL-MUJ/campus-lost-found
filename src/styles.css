@@ -51,27 +51,31 @@
 .profile-logout-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--red-soft);border-radius:9px;background:var(--red-soft);color:var(--red);padding:11px 12px;font-size:12px;font-weight:700}
 .profile-logout-button:hover{filter:brightness(1.06)}
 @media(max-width:700px){.profile-dropdown{right:-4px;top:calc(100% + 9px)}.top-avatar{display:grid}}
-
-/* Improve dropdown visibility in dark mode */
+/* CampusKind: readable category dropdown in dark mode */
 .dark select,
-.dark select option {
-  background-color: #18212b;
-  color: #f5f7fa;
+.dark select option,
+.dark .category-filter,
+.dark .category-filter option {
+  background-color: #18212b !important;
+  color: #f5f7fa !important;
+  -webkit-text-fill-color: #f5f7fa;
 }
 
+/* Dropdown border and focus state */
 .dark select {
-  border-color: #344253;
+  border-color: #344253 !important;
+  color-scheme: dark;
 }
 
-.dark select option:checked,
-.dark select option:hover {
-  background-color: #365f2b;
-  color: #ffffff;
+.dark select option:checked {
+  background-color: #365f2b !important;
+  color: #ffffff !important;
 }
 
-/* Keep dropdowns readable in light mode */
+/* Light mode remains readable */
 .light select,
 .light select option {
   background-color: #ffffff;
   color: #17231a;
+  -webkit-text-fill-color: #17231a;
 }
