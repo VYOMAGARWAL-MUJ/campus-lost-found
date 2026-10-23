@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownRight, ArrowLeft, ArrowRight, Bell, BookOpen, Check, ChevronDown,
-  CircleHelp, Clock3, Eye, Glasses, Laptop, LogOut, MapPin, Menu,
+  CircleHelp, Clock3, Eye, Filter, Glasses, Laptop, LogOut, MapPin, Menu,
   Moon, Plus, Search, ShieldCheck, Smartphone, Sun, Upload, UserRound, Wallet,
   X, MessageCircle, KeyRound, Backpack, Watch, Tag, Package, HeartHandshake
 } from "lucide-react";
@@ -104,54 +104,28 @@ export default function App() {
     setAuthMessage("");
 
     const email = authEmail.trim().toLowerCase();
-    const username = authName.trim();
-    const phone = authPhone.trim();
-
     if (!isCollegeEmail(email)) {
       setAuthMessage(`Use an email ending exactly in @${collegeDomain}.`);
       return;
     }
-    if (!username) {
+    if (!authName.trim()) {
       setAuthMessage("Please enter your name.");
       return;
     }
 
-    setAuthBusy(true);
-    try {
-      // Save the profile in Supabase as well as this browser. This is a no-auth
-      // prototype: checking the domain does not verify ownership of the email.
-      if (supabase) {
-        const { error } = await supabase
-          .from("profiles")
-          .upsert(
-            { username, email, phone: phone || null },
-            { onConflict: "email" }
-          );
-
-        if (error) {
-          setAuthMessage(`Could not save your profile to Supabase: ${error.message}`);
-          return;
-        }
-      }
-
-      const visitor = {
-        user: {
-          // Use email as the local visitor identifier; this is not a Supabase auth user ID.
-          id: email,
-          email,
-          user_metadata: { username, phone },
-        },
-      };
-      localStorage.setItem("campuskind-visitor", JSON.stringify(visitor));
-      setProfile({ id: email, username, email, phone });
-      setSession(visitor);
-      setAuthMessage("");
-      if (supabase) void loadItems();
-    } catch (error: any) {
-      setAuthMessage(`Could not save your profile: ${error?.message || "Unexpected error."}`);
-    } finally {
-      setAuthBusy(false);
-    }
+    // This no-auth visitor profile is not proof that the visitor owns this email.
+    const visitor = {
+      user: {
+        id: email,
+        email,
+        user_metadata: { username: authName.trim(), phone: authPhone.trim() },
+      },
+    };
+    localStorage.setItem("campuskind-visitor", JSON.stringify(visitor));
+    setProfile({ id: email, username: authName.trim(), email, phone: authPhone.trim() });
+    setSession(visitor);
+    setAuthMessage("");
+    if (supabase) void loadItems();
   }
 
   async function signOut() {
@@ -256,7 +230,7 @@ export default function App() {
       ) : (
         <div className="dashboard-layout">
           <aside className={`sidebar ${mobileMenu?"sidebar-open":""}`}>
-            <div className="side-brand"><button type="button" className="side-brand-refresh" onClick={() => window.location.reload()} aria-label="Refresh CampusKind" title="Refresh page" style={{display:"flex",alignItems:"center",gap:"12px",flex:1,minWidth:0,padding:0,border:0,background:"transparent",color:"inherit",textAlign:"left",cursor:"pointer"}}><span className="brand-mark">ck</span><span style={{display:"flex",flexDirection:"column",minWidth:0}}><strong>CampusKind</strong><span>LOST &amp; FOUND</span></span></button><button type="button" className="mobile-close icon-btn" onClick={()=>setMobileMenu(false)} aria-label="Close menu"><X size={19}/></button></div>
+            <div className="side-brand"><div className="brand-mark">ck</div><div><strong>CampusKind</strong><span>LOST & FOUND</span></div><button className="mobile-close icon-btn" onClick={()=>setMobileMenu(false)}><X size={19}/></button></div>
             <div className="campus-tag"><span className="campus-symbol">✳</span><div><strong>Your Campus</strong><small>Community space</small></div><ChevronDown size={15}/></div>
             <p className="nav-label">WORKSPACE</p>
             <nav className="side-nav">
