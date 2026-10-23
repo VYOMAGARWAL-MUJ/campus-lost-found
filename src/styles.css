@@ -124,56 +124,11 @@
 }
 
 
-/* Profile menu visibility fix: keep it above dashboard content and keep logout reachable. */
-.topbar {
-  position: relative;
-  z-index: 200;
-  overflow: visible;
-}
-.topbar-actions,
-.profile-menu-wrap {
-  position: relative;
-  z-index: 201;
-}
-.profile-menu-dismiss {
-  position: fixed;
-  inset: 0;
-  z-index: 998;
-}
-.profile-dropdown {
-  position: absolute;
-  z-index: 999;
-  right: 0;
-  top: calc(100% + 12px);
-  width: min(360px, calc(100vw - 28px));
-  max-height: calc(100vh - 92px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  background: var(--panel);
-  scrollbar-width: thin;
-}
-.profile-dropdown-head {
-  flex: 0 0 auto;
-}
-.profile-details {
-  flex: 0 1 auto;
-  min-height: 0;
-}
-.profile-logout-button {
-  flex: 0 0 auto;
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  margin-top: 2px;
-  box-shadow: 0 -6px 12px var(--panel);
-}
-@media (max-width: 700px) {
-  .topbar { z-index: 200; }
-  .profile-dropdown {
-    right: -4px;
-    top: calc(100% + 9px);
-    max-height: calc(100dvh - 78px);
-  }
-}
+/* Resolve / close lost-and-found requests */
+.status-pill.closed{background:var(--panel-3);color:var(--muted-2);}
+.item-card:has(.status-pill.closed){opacity:.88;}
+.resolved-label{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:10px;font-weight:700;white-space:nowrap;}
+.resolve-request-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:13px;padding:10px 11px;border:1px solid #8bb95a55;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;line-height:1.4;transition:filter .15s,transform .15s;}
+.resolve-request-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.resolve-request-btn.reopen{border-color:var(--line);background:var(--panel-2);color:var(--muted-2);}
+@media(prefers-reduced-motion:reduce){.resolve-request-btn{transition:none;}}
