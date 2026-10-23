@@ -48,6 +48,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem("campuskind-visitor") || "null"); } catch { return null; }
   });
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [authReady, setAuthReady] = useState(true);
   const [authEmail, setAuthEmail] = useState("");
   const [authName, setAuthName] = useState("");
@@ -251,7 +252,21 @@ export default function App() {
           </aside>
           {mobileMenu && <button className="mobile-scrim" onClick={()=>setMobileMenu(false)} aria-label="Close menu"/>}
           <main className="main-area">
-            <header className="topbar"><div className="topbar-left"><button className="mobile-menu-btn icon-btn" onClick={()=>setMobileMenu(true)}><Menu size={20}/></button><div className="breadcrumb">Workspace <span>/</span> <strong>{activeTab==="all"?"All listings":activeTab==="mine"?"My listings":activeTab==="lost"?"Lost items":"Found items"}</strong></div></div><div className="topbar-actions"><span className="verified-badge"><ShieldCheck size={14}/> Campus verified</span><button className="icon-btn theme-toggle" onClick={()=>setTheme(theme==="dark"?"light":"dark")} aria-label="Toggle theme">{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><div className="avatar top-avatar">{initials(profile?.username || "S")}</div></div></header>
+            <header className="topbar"><div className="topbar-left"><button className="mobile-menu-btn icon-btn" onClick={()=>setMobileMenu(true)}><Menu size={20}/></button><div className="breadcrumb">Workspace <span>/</span> <strong>{activeTab==="all"?"All listings":activeTab==="mine"?"My listings":activeTab==="lost"?"Lost items":"Found items"}</strong></div></div><div className="topbar-actions"><span className="verified-badge"><ShieldCheck size={14}/> Campus verified</span><button className="icon-btn theme-toggle" onClick={()=>setTheme(theme==="dark"?"light":"dark")} aria-label="Toggle theme">{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><div className="profile-menu-wrap">
+              <button type="button" className="avatar top-avatar profile-avatar-button" onClick={() => setProfileMenuOpen(open => !open)} aria-label="Open your profile" aria-expanded={profileMenuOpen} title="Your profile">{initials(profile?.username || "S")}</button>
+              {profileMenuOpen && <>
+                <button className="profile-menu-dismiss" aria-label="Close profile menu" onClick={() => setProfileMenuOpen(false)} />
+                <section className="profile-dropdown" aria-label="Your profile">
+                  <div className="profile-dropdown-head"><div className="avatar profile-dropdown-avatar">{initials(profile?.username || "S")}</div><div><strong>My profile</strong><span>CampusKind member</span></div><button type="button" className="profile-close icon-btn" onClick={() => setProfileMenuOpen(false)} aria-label="Close profile"><X size={16}/></button></div>
+                  <div className="profile-details">
+                    <div><span>Name</span><strong>{profile?.username || session.user.user_metadata?.username || "Not provided"}</strong></div>
+                    <div><span>Phone number</span><strong>{profile?.phone || session.user.user_metadata?.phone || "Not provided"}</strong></div>
+                    <div><span>Email</span><strong className="profile-email-value">{profile?.email || session.user.email || "Not provided"}</strong></div>
+                  </div>
+                  <button type="button" className="profile-logout-button" onClick={() => { setProfileMenuOpen(false); void signOut(); }}><LogOut size={16}/> Log out</button>
+                </section>
+              </>}
+            </div></div></header>
             <div className="page-content">
               <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> YOUR CAMPUS, CONNECTED</div><h1>Good {new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"}, <span>{profile?.username || session.user.user_metadata?.username || "there"}</span><span className="wave">✳</span></h1><p className="muted">One community. A thousand little ways to help.</p></div><button className="primary-btn report-top-btn" onClick={()=>{setFormStatus("lost");setShowForm(true)}}><Plus size={18}/> Report an item</button></section>
               <section className="stats-grid">
