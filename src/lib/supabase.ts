@@ -7,7 +7,7 @@ export const isSupabaseConfigured = Boolean(url && key && !url.includes("YOUR_PR
 export const supabase = isSupabaseConfigured ? createClient(url!, key!) : null;
 
 export const collegeDomain = (import.meta.env.VITE_COLLEGE_EMAIL_DOMAIN as string | undefined)
-  ?.trim().toLowerCase().replace(/^@/, "") ?? "college.ac.in";
+ ?.trim().toLowerCase().replace(/^@/, "") ?? "muj.manipal.edu";
 
 export function isCollegeEmail(email: string) {
   const normalized = email.trim().toLowerCase();
