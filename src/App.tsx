@@ -256,7 +256,7 @@ export default function App() {
       ) : (
         <div className="dashboard-layout">
           <aside className={`sidebar ${mobileMenu?"sidebar-open":""}`}>
-            <div className="side-brand"><div className="brand-mark">ck</div><div><strong>CampusKind</strong><span>LOST & FOUND</span></div><button className="mobile-close icon-btn" onClick={()=>setMobileMenu(false)}><X size={19}/></button></div>
+            <div className="side-brand"><button type="button" className="side-brand-refresh" onClick={() => window.location.reload()} aria-label="Refresh CampusKind" title="Refresh page" style={{display:"flex",alignItems:"center",gap:"12px",flex:1,minWidth:0,padding:0,border:0,background:"transparent",color:"inherit",textAlign:"left",cursor:"pointer"}}><span className="brand-mark">ck</span><span style={{display:"flex",flexDirection:"column",minWidth:0}}><strong>CampusKind</strong><span>LOST &amp; FOUND</span></span></button><button type="button" className="mobile-close icon-btn" onClick={()=>setMobileMenu(false)} aria-label="Close menu"><X size={19}/></button></div>
             <div className="campus-tag"><span className="campus-symbol">✳</span><div><strong>Your Campus</strong><small>Community space</small></div><ChevronDown size={15}/></div>
             <p className="nav-label">WORKSPACE</p>
             <nav className="side-nav">
