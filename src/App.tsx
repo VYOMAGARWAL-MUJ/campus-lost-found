@@ -52,6 +52,8 @@ export default function App() {
   const [authPhone, setAuthPhone] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
   const [items, setItems] = useState<Item[]>(demoItems);
   const [activeTab, setActiveTab] = useState<"all"|"lost"|"found"|"mine">("all");
   const [search, setSearch] = useState("");
@@ -103,20 +105,56 @@ export default function App() {
     else if (error) setNotice(`Could not load listings: ${error.message}`);
   }
   async function login(e: FormEvent) {
-    e.preventDefault(); setAuthMessage("");
-    if (!isCollegeEmail(authEmail)) { setAuthMessage(`Use your college email ending in @${collegeDomain}.`); return; }
-    if (!authName.trim()) { setAuthMessage("Please enter your name."); return; }
-    if (!isSupabaseConfigured || !supabase) { setAuthMessage("Connect Supabase first. See the README for setup. Demo preview is available below."); return; }
+    e.preventDefault();
+    setAuthMessage("");
+
+    if (!isCollegeEmail(authEmail)) {
+      setAuthMessage(`Use your college email ending in @${collegeDomain}.`);
+      return;
+    }
+    if (!authName.trim()) {
+      setAuthMessage("Please enter your name.");
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthMessage("Connect Supabase first. Check your environment variables.");
+      return;
+    }
+
     setAuthBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: authEmail.trim().toLowerCase(),
-        options: { data: { username: authName.trim(), phone: authPhone.trim() }, emailRedirectTo: window.location.origin }
-      });
-      if (error) throw error;
-      setAuthMessage("Check your college inbox for the secure sign-in link. Open it on this device to continue.");
-    } catch (err:any) { setAuthMessage(err.message || "Could not send sign-in link."); }
-    finally { setAuthBusy(false); }
+      const email = authEmail.trim().toLowerCase();
+
+      if (!otpSent) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: true,
+            data: { username: authName.trim(), phone: authPhone.trim() },
+          },
+        });
+        if (error) throw error;
+        setOtpSent(true);
+        setAuthMessage("A verification code has been requested. Check your college inbox.");
+      } else {
+        const cleanOtp = otp.replace(/\s/g, "");
+        if (!/^\d{6}$/.test(cleanOtp)) {
+          setAuthMessage("Enter the 6-digit code from your email.");
+          return;
+        }
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token: cleanOtp,
+          type: "email",
+        });
+        if (error) throw error;
+        setAuthMessage("Email verified successfully.");
+      }
+    } catch (err: any) {
+      setAuthMessage(err.message || "Authentication failed. Please try again.");
+    } finally {
+      setAuthBusy(false);
+    }
   }
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
@@ -189,14 +227,41 @@ export default function App() {
               <div className="form-icon"><ShieldCheck size={23}/></div>
               <p className="eyebrow">A SAFE SPACE FOR YOUR CAMPUS</p>
               <h2>Welcome to your<br/>campus community.</h2>
-              <p className="muted auth-intro">Sign in with your college email to report an item or help someone find theirs.</p>
+              <p className="muted auth-intro">Verify your college email with a one-time code to report an item or help someone find theirs.</p>
               <form onSubmit={login} className="auth-form">
                 <label>Your name<input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="e.g. Aanya Sharma" autoComplete="name" required /></label>
                 <label>College email address<div className="input-with-icon"><UserRound size={17}/><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder={`you@${collegeDomain}`} autoComplete="email" required /></div></label>
                 <label>Phone number <span className="optional">(optional)</span><div className="input-with-icon"><Smartphone size={17}/><input type="tel" value={authPhone} onChange={e=>setAuthPhone(e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" /></div></label>
-                <button className="primary-btn full-btn" disabled={authBusy}>{authBusy?"Sending secure link…":<>Continue with college email <ArrowRight size={17}/></>}</button>
+                {otpSent && (
+                  <label>
+                    6-digit verification code
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      value={otp}
+                      onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="Enter your OTP"
+                      required
+                    />
+                  </label>
+                )}
+                <button className="primary-btn full-btn" disabled={authBusy}>
+                  {authBusy ? "Please wait…" : otpSent ? <>Verify OTP <ArrowRight size={17}/></> : <>Send OTP <ArrowRight size={17}/></>}
+                </button>
+                {otpSent && (
+                  <button type="button" className="secondary-btn" onClick={() => {
+                    setOtpSent(false);
+                    setOtp("");
+                    setAuthMessage("");
+                  }}>
+                    Use a different email
+                  </button>
+                )}
               </form>
-              {authMessage && <div className={`auth-message ${authMessage.startsWith("Check")?"success":""}`}>{authMessage}</div>}
+              {authMessage && <div className={`auth-message ${authMessage.includes("requested")?"success":""}`}>{authMessage}</div>}
               {!isSupabaseConfigured && <div className="demo-notice"><CircleHelp size={16}/><span><strong>Preview mode</strong><br/>The sign-in flow becomes real after you add your Supabase keys. You can explore the interface after setup.</span></div>}
               <p className="terms-note"><ShieldCheck size={14}/> College email verification helps keep this community campus-only.</p>
             </div>
