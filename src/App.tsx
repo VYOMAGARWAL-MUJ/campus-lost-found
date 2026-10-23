@@ -104,28 +104,54 @@ export default function App() {
     setAuthMessage("");
 
     const email = authEmail.trim().toLowerCase();
+    const username = authName.trim();
+    const phone = authPhone.trim();
+
     if (!isCollegeEmail(email)) {
       setAuthMessage(`Use an email ending exactly in @${collegeDomain}.`);
       return;
     }
-    if (!authName.trim()) {
+    if (!username) {
       setAuthMessage("Please enter your name.");
       return;
     }
 
-    // This no-auth visitor profile is not proof that the visitor owns this email.
-    const visitor = {
-      user: {
-        id: email,
-        email,
-        user_metadata: { username: authName.trim(), phone: authPhone.trim() },
-      },
-    };
-    localStorage.setItem("campuskind-visitor", JSON.stringify(visitor));
-    setProfile({ id: email, username: authName.trim(), email, phone: authPhone.trim() });
-    setSession(visitor);
-    setAuthMessage("");
-    if (supabase) void loadItems();
+    setAuthBusy(true);
+    try {
+      // Save the profile in Supabase as well as this browser. This is a no-auth
+      // prototype: checking the domain does not verify ownership of the email.
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .upsert(
+            { username, email, phone: phone || null },
+            { onConflict: "email" }
+          );
+
+        if (error) {
+          setAuthMessage(`Could not save your profile to Supabase: ${error.message}`);
+          return;
+        }
+      }
+
+      const visitor = {
+        user: {
+          // Use email as the local visitor identifier; this is not a Supabase auth user ID.
+          id: email,
+          email,
+          user_metadata: { username, phone },
+        },
+      };
+      localStorage.setItem("campuskind-visitor", JSON.stringify(visitor));
+      setProfile({ id: email, username, email, phone });
+      setSession(visitor);
+      setAuthMessage("");
+      if (supabase) void loadItems();
+    } catch (error: any) {
+      setAuthMessage(`Could not save your profile: ${error?.message || "Unexpected error."}`);
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   async function signOut() {
