@@ -132,3 +132,38 @@
 .resolve-request-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
 .resolve-request-btn.reopen{border-color:var(--line);background:var(--panel-2);color:var(--muted-2);}
 @media(prefers-reduced-motion:reduce){.resolve-request-btn{transition:none;}}
+/* Fix CampusKind profile popup overlapping dashboard content */
+.profile-menu,
+.profile-dropdown,
+.profile-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 9999;
+  width: min(400px, calc(100vw - 24px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+/* Ensure the profile popup's parent provides an anchor */
+.topbar-actions {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Keep dashboard content behind the profile popup */
+.topbar {
+  position: relative;
+  z-index: 100;
+  isolation: isolate;
+}
+
+/* Prevent report buttons from covering the profile popup */
+.report-top-btn {
+  position: relative;
+  z-index: 1;
+}
