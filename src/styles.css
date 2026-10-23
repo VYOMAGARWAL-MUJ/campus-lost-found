@@ -28,3 +28,26 @@
 :root[data-theme="light"] .auth-visual .float-check{background:#4d792a;color:#fff;}
 :root[data-theme="light"] .auth-visual .visual-bottom{color:#68766c;}
 @media(max-width:700px){.logo-refresh{width:auto;}}
+
+
+/* Clickable account avatar and profile dropdown */
+.profile-menu-wrap{position:relative;display:flex;align-items:center}
+.profile-avatar-button{border:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.profile-avatar-button:hover,.profile-avatar-button[aria-expanded="true"]{transform:translateY(-1px);box-shadow:0 0 0 3px var(--accent-soft)}
+.profile-menu-dismiss{position:fixed;inset:0;z-index:39;background:transparent;border:0;cursor:default}
+.profile-dropdown{position:absolute;right:0;top:calc(100% + 12px);width:min(330px,calc(100vw - 32px));z-index:40;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px;color:var(--text)}
+.profile-dropdown-head{display:flex;align-items:center;gap:11px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.profile-dropdown-head>div:nth-child(2){display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.profile-dropdown-head strong{font:800 14px Manrope,sans-serif}
+.profile-dropdown-head span{font-size:10px;color:var(--muted)}
+.profile-dropdown-avatar{width:40px;height:40px;font-size:12px}
+.profile-close{width:30px;height:30px;flex-shrink:0}
+.profile-details{display:flex;flex-direction:column;gap:0;padding:6px 0 12px}
+.profile-details>div{display:flex;flex-direction:column;gap:5px;padding:10px 2px;border-bottom:1px solid var(--line);min-width:0}
+.profile-details>div:last-child{border-bottom:0}
+.profile-details span{font-size:10px;color:var(--muted)}
+.profile-details strong{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.profile-details .profile-email-value{font-size:11px}
+.profile-logout-button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--red-soft);border-radius:9px;background:var(--red-soft);color:var(--red);padding:11px 12px;font-size:12px;font-weight:700}
+.profile-logout-button:hover{filter:brightness(1.06)}
+@media(max-width:700px){.profile-dropdown{right:-4px;top:calc(100% + 9px)}.top-avatar{display:grid}}
