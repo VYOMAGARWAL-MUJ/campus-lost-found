@@ -124,46 +124,216 @@
 }
 
 
-/* Resolve / close lost-and-found requests */
-.status-pill.closed{background:var(--panel-3);color:var(--muted-2);}
-.item-card:has(.status-pill.closed){opacity:.88;}
-.resolved-label{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:10px;font-weight:700;white-space:nowrap;}
-.resolve-request-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:13px;padding:10px 11px;border:1px solid #8bb95a55;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;line-height:1.4;transition:filter .15s,transform .15s;}
-.resolve-request-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
-.resolve-request-btn.reopen{border-color:var(--line);background:var(--panel-2);color:var(--muted-2);}
-@media(prefers-reduced-motion:reduce){.resolve-request-btn{transition:none;}}
-/* Fix CampusKind profile popup overlapping dashboard content */
-.profile-menu,
-.profile-dropdown,
-.profile-popover {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 9999;
-  width: min(400px, calc(100vw - 24px));
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-}
-
-/* Ensure the profile popup's parent provides an anchor */
-.topbar-actions {
-  position: relative;
-  z-index: 1000;
-}
-
-/* Keep dashboard content behind the profile popup */
+/* Profile menu visibility fix: keep it above dashboard content and keep logout reachable. */
 .topbar {
   position: relative;
-  z-index: 100;
-  isolation: isolate;
+  z-index: 200;
+  overflow: visible;
+}
+.topbar-actions,
+.profile-menu-wrap {
+  position: relative;
+  z-index: 201;
+}
+.profile-menu-dismiss {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+}
+.profile-dropdown {
+  position: absolute;
+  z-index: 999;
+  right: 0;
+  top: calc(100% + 12px);
+  width: min(360px, calc(100vw - 28px));
+  max-height: calc(100vh - 92px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  scrollbar-width: thin;
+}
+.profile-dropdown-head {
+  flex: 0 0 auto;
+}
+.profile-details {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.profile-logout-button {
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 2px;
+  box-shadow: 0 -6px 12px var(--panel);
+}
+@media (max-width: 700px) {
+  .topbar { z-index: 200; }
+  .profile-dropdown {
+    right: -4px;
+    top: calc(100% + 9px);
+    max-height: calc(100dvh - 78px);
+  }
 }
 
-/* Prevent report buttons from covering the profile popup */
-.report-top-btn {
-  position: relative;
-  z-index: 1;
+/* Responsive fixes: mobile sidebar state and complete mobile onboarding content */
+@media (max-width: 950px) {
+  .dashboard-layout { width: 100%; min-width: 0; overflow-x: clip; }
+
+  /* Disable the desktop entrance animation on the mobile drawer. Its retained
+     transform was able to override the closed-state translateX. */
+  .sidebar {
+    animation: none !important;
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(290px, 86vw);
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform .25s ease, visibility .25s ease;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 30;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .mobile-close {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .mobile-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    width: 100%;
+    height: 100%;
+    background: rgb(0 0 0 / 55%);
+    border: 0;
+    padding: 0;
+    touch-action: manipulation;
+  }
+
+  .main-area { width: 100%; min-width: 0; margin-left: 0 !important; }
+}
+
+@media (max-width: 700px) {
+  html, body, #root, .app-shell { width: 100%; min-width: 0; min-height: 100%; }
+  body { overflow-x: hidden; }
+
+  /* Keep the full branding/story panel on mobile instead of hiding it. */
+  .auth-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow-x: clip;
+  }
+
+  .auth-visual {
+    display: flex !important;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: auto;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 22px 18px;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .auth-topbrand { width: fit-content; max-width: 100%; gap: 10px; font-size: 16px; }
+  .auth-topbrand .brand-mark { width: 36px; height: 36px; border-radius: 12px; font-size: 21px; }
+  .beta-pill { font-size: 8px; letter-spacing: .7px; padding: 5px 7px; }
+
+  .visual-copy { width: 100%; max-width: 560px; margin: 30px auto 0; }
+  .visual-copy .eyebrow { font-size: 9px; letter-spacing: 1.2px; }
+  .visual-copy h1 {
+    font-size: clamp(32px, 8.5vw, 42px);
+    line-height: 1.08;
+    letter-spacing: -1.8px;
+    margin: 15px 0 13px;
+    overflow-wrap: anywhere;
+  }
+  .visual-copy > p { max-width: 100%; font-size: 13px; line-height: 1.65; }
+
+  .visual-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 25px; }
+  .visual-stats > div { min-width: 0; padding: 0 10px; gap: 5px; }
+  .visual-stats > div:first-child { padding-left: 0; border-left: 0; }
+  .visual-stats strong { font-size: 23px; }
+  .visual-stats span { font-size: 9px; line-height: 1.35; }
+
+  /* Decorative cards become normal-flow content so they don't cover the form. */
+  .floating-item, .float-one, .float-two {
+    position: relative;
+    inset: auto;
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    font-size: 10px;
+    white-space: normal;
+  }
+  .floating-item { animation: ckFadeIn .9s ease-out both; }
+  .float-two { margin-top: 8px; }
+  .visual-bottom { width: 100%; margin-top: 20px; padding-top: 15px; gap: 12px; font-size: 8px; letter-spacing: 1px; }
+
+  .auth-panel {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: auto;
+    padding: 16px 22px calc(22px + env(safe-area-inset-bottom, 0px));
+    overflow: visible;
+  }
+  .auth-panel-top { justify-content: flex-end; min-height: 40px; }
+  /* The CK logo is already visible above, so avoid duplicating it. */
+  .auth-panel-top .mobile-brand { display: none; }
+  .auth-form-wrap { width: 100%; max-width: 440px; margin: 20px auto 28px; }
+  .form-icon { width: 48px; height: 48px; margin-bottom: 20px; }
+  .auth-form-wrap > .eyebrow { font-size: 9px; letter-spacing: 1.2px; line-height: 1.5; }
+  .auth-form-wrap h2 { font-size: clamp(27px, 7.4vw, 32px); line-height: 1.15; letter-spacing: -1px; margin: 12px 0; }
+  .auth-intro { font-size: 13px; line-height: 1.6; margin-bottom: 22px; }
+  .auth-form { gap: 16px; }
+  .auth-form label { display: block; min-width: 0; font-size: 12px; }
+  .auth-form input { width: 100%; min-width: 0; min-height: 46px; font-size: 16px; }
+  .input-with-icon, .input-with-icon input { min-width: 0; }
+  .auth-form .primary-btn { width: 100%; min-height: 48px; font-size: 14px; }
+  .terms-note, .demo-notice, .auth-message { font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
+  .auth-panel-bottom { gap: 12px; flex-wrap: wrap; padding-top: 14px; font-size: 10px; }
+  .auth-panel-bottom button { min-height: 36px; }
+}
+
+@media (max-width: 390px) {
+  .auth-visual { padding-left: 17px; padding-right: 17px; }
+  .auth-topbrand { gap: 8px; font-size: 15px; }
+  .beta-pill { max-width: 112px; white-space: normal; line-height: 1.2; }
+  .visual-copy h1 { font-size: clamp(30px, 8.2vw, 33px); letter-spacing: -1.5px; }
+  .visual-stats > div { padding-right: 6px; padding-left: 7px; }
+  .visual-stats strong { font-size: 21px; }
+  .visual-stats span { font-size: 8px; }
+  .auth-panel { padding-left: 17px; padding-right: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar.sidebar-open { transition: none !important; }
 }
