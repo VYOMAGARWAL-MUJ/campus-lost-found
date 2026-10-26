@@ -83,3 +83,23 @@ The app strips spaces and punctuation from the phone field and creates a `wa.me`
 - Do not post ID numbers, addresses, passwords, financial details, or other sensitive information in item descriptions/photos.
 - Add moderation/reporting and a retention policy if this will be used by a large campus.
 - Optional next steps: Supabase Storage for direct photo uploads, email-domain allow-list UI, admin moderation, item resolution/closed status, and contact requests that do not reveal phone numbers.
+
+
+## No-auth shared-listings mode (selected setup)
+
+This version lets visitors enter a name and an address ending in `@muj.manipal.edu` without verifying email ownership. The name/email are stored in the browser as a lightweight visitor identity. This is **not authentication**: visitors can impersonate others, and the browser-side domain check can be bypassed.
+
+To migrate an existing Supabase project:
+1. Back up your database first.
+2. Open Supabase → SQL Editor.
+3. Run `supabase/schema-public-no-auth.sql` once.
+4. Keep `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (the publishable/legacy anon key), and `VITE_COLLEGE_EMAIL_DOMAIN=muj.manipal.edu` configured in Vercel.
+5. Commit the updated `src/App.tsx` and `src/lib/supabase.ts` to GitHub; Vercel should redeploy.
+
+This SQL enables public reading of listings and public insertion of new listings. Phone numbers are visible to all visitors because the current interface uses WhatsApp contact links. For a real production campus service, add server-side anti-spam/rate limits and verified identity before collecting personal contact details. Do not expose a Supabase secret/service-role key in the browser.
+
+
+## Photo-only item reporting
+The report form now omits Item name, Description, and Photo URL fields. Students choose a category, upload a photo, and enter the location/date/contact phone. To enable uploads, run `supabase/item-photos-storage-setup.sql` in the Supabase SQL Editor. The app uses the public `item-photos` Storage bucket and saves its public image URL in `items.image_url`.
+
+Because the current app uses a no-auth visitor flow, the setup permits anonymous uploads. This is prototype-level access; before a public launch, use verified authentication, scoped storage policies, and abuse/rate limiting.
