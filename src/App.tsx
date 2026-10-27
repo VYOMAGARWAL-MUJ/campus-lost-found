@@ -68,6 +68,7 @@ export default function App() {
   const [form, setForm] = useState({ title:"", category:categories[0], description:"", location:"", item_date:new Date().toISOString().slice(0,10), phone:"", image_url:"" });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
+  const [imagePreviewItem, setImagePreviewItem] = useState<Item | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
