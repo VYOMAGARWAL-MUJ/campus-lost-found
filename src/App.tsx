@@ -277,10 +277,37 @@ export default function App() {
               <h2>Welcome to your<br/>campus community.</h2>
               <p className="muted auth-intro">Sign in with your college email to report an item or help someone find theirs.</p>
               <form onSubmit={login} className="auth-form">
-                <label>Your name<input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="e.g. Aanya Sharma" autoComplete="name" required /></label>
-                <label>College email address<div className="input-with-icon"><UserRound size={17}/><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder={`you@${collegeDomain}`} autoComplete="email" required /></div></label>
-                <label>Phone number <span className="optional">(optional)</span><div className="input-with-icon"><Smartphone size={17}/><input type="tel" value={authPhone} onChange={e=>setAuthPhone(e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" /></div></label>
-                <button className="primary-btn full-btn" disabled={authBusy}>{<>Continue <ArrowRight size={17}/></>}</button>
+              <label>
+              Your name
+              <input
+              value={authName}
+              onChange={e => setAuthName(e.target.value)}
+              placeholder="e.g. Aanya Sharma"
+              autoComplete="name"
+              required
+              />
+              </label>
+
+              <label>
+              College email address
+              <div className="input-with-icon">
+              <UserRound size={17} />
+              <input
+              type="email"
+              value={authEmail}
+              onChange={e => setAuthEmail(e.target.value)}
+              placeholder={`you@${collegeDomain}`}
+              autoComplete="email"
+              required
+              />
+              </div>
+              </label>
+
+              <button className="primary-btn full-btn" disabled={authBusy}>
+              <>
+              Continue <ArrowRight size={17} />
+              </>
+              </button>
               </form>
               {authMessage && <div className={`auth-message ${authMessage.startsWith("Check")?"success":""}`}>{authMessage}</div>}
               {!isSupabaseConfigured && <div className="demo-notice"><CircleHelp size={16}/><span><strong>Preview mode</strong><br/>The sign-in flow becomes real after you add your Supabase keys. You can explore the interface after setup.</span></div>}
