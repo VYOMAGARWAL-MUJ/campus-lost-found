@@ -9,7 +9,7 @@ import { collegeDomain, isCollegeEmail, isSupabaseConfigured, supabase } from ".
 
 type ItemStatus = "lost" | "found";
 type Item = {
-  id: string; user_id?: string | null; status: ItemStatus; title: string; category: string;
+  id: string; user_id?: string | null; status: ItemStatus; is_closed?: boolean | null; title: string; category: string;
   description: string; location: string; item_date: string; phone: string;
   image_url?: string | null; created_at?: string; contact_name?: string; contact_email?: string;
 };
@@ -57,6 +57,7 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [items, setItems] = useState<Item[]>(demoItems);
   const [activeTab, setActiveTab] = useState<"all"|"lost"|"found"|"mine">("all");
+  const [myListingView, setMyListingView] = useState<"active"|"closed">("active");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All categories");
   const [showForm, setShowForm] = useState(false);
@@ -199,16 +200,51 @@ export default function App() {
     finally { setFormBusy(false); }
   }
 
+  async function setListingClosed(item: Item, closed: boolean) {
+    if (!profile?.email || item.contact_email?.toLowerCase() !== profile.email.toLowerCase()) {
+      setNotice("You can only change the status of your own listings.");
+      return;
+    }
+    if (!supabase) {
+      setNotice("Connect to Supabase to update listing status.");
+      return;
+    }
+    setNotice("");
+    const { error } = await supabase.from("items").update({ is_closed: closed }).eq("id", item.id);
+    if (error) {
+      setNotice(`Could not ${closed ? "close" : "reopen"} this request: ${error.message}`);
+      return;
+    }
+    setItems(current => current.map(row => row.id === item.id ? { ...row, is_closed: closed } : row));
+    setNotice(closed ? "Request closed. The listing is saved in My Listings." : "Request reopened.");
+  }
+
+  useEffect(() => {
+    if (!imagePreviewItem) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setImagePreviewItem(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [imagePreviewItem]);
+
   const visibleItems = useMemo(() => items.filter(item => {
     if (activeTab==="lost" && item.status!=="lost") return false;
     if (activeTab==="found" && item.status!=="found") return false;
-    if (activeTab==="mine" && item.contact_email?.toLowerCase() !== profile?.email?.toLowerCase()) return false;
+    if (activeTab==="mine") {
+      if (item.contact_email?.toLowerCase() !== profile?.email?.toLowerCase()) return false;
+      if (Boolean(item.is_closed) !== (myListingView === "closed")) return false;
+    } else if (item.is_closed) return false;
     if (categoryFilter!=="All categories" && item.category!==categoryFilter) return false;
     const haystack = `${item.title} ${item.description} ${item.location} ${item.category}`.toLowerCase();
     return haystack.includes(search.toLowerCase());
-  }), [items, activeTab, categoryFilter, search, profile?.email]);
-  const lostCount = items.filter(i=>i.status==="lost").length;
-  const foundCount = items.filter(i=>i.status==="found").length;
+  }), [items, activeTab, categoryFilter, search, profile?.email, myListingView]);
+  const lostCount = items.filter(i=>i.status==="lost" && !i.is_closed).length;
+  const foundCount = items.filter(i=>i.status==="found" && !i.is_closed).length;
 
   if (!authReady) return <div className="loading-screen"><div className="brand-mark">ck</div><p>Getting your campus space ready…</p></div>;
 
@@ -302,10 +338,10 @@ export default function App() {
               <section className="community-banner"><div className="banner-art"><div className="banner-ring ring-one"/><div className="banner-ring ring-two"/><div className="banner-icon"><HeartHandshake size={27}/></div><span className="spark spark-a">✦</span><span className="spark spark-b">✳</span></div><div className="banner-copy"><span className="banner-label">A LITTLE CAMPUS KINDNESS</span><h3>Lost it? Found it? <em>Make the connection.</em></h3><p>Every listing brings us one step closer to getting something important back where it belongs.</p></div><button className="banner-btn" onClick={()=>{setFormStatus("found");setShowForm(true)}}>I found something <ArrowDownRight size={17}/></button></section>
               <section className="listings-section">
                 <div className="section-heading"><div><div className="eyebrow">THE COMMUNITY BOARD</div><h2>{activeTab==="all"?"Latest listings":activeTab==="lost"?"Lost items":activeTab==="found"?"Found items":"Your listings"} <span className="result-count">{visibleItems.length}</span></h2><p className="muted">Little things matter. Let’s find their way home.</p></div><button className="text-btn" onClick={()=>{setActiveTab("all");setCategoryFilter("All categories");setSearch("")}}>View all <ArrowRight size={15}/></button></div>
-                <div className="filters-row"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items, places, descriptions…" /><kbd>⌘ K</kbd></div><div className="segmented"><button className={activeTab==="all"?"selected":""} onClick={()=>setActiveTab("all")}>All</button><button className={activeTab==="lost"?"selected":""} onClick={()=>setActiveTab("lost")}>Lost</button><button className={activeTab==="found"?"selected":""} onClick={()=>setActiveTab("found")}>Found</button></div></div>
+                <div className="filters-row"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search items, places, descriptions…" /><kbd>⌘ K</kbd></div><div className="segmented"><button className={activeTab==="all"?"selected":""} onClick={()=>setActiveTab("all")}>All</button><button className={activeTab==="lost"?"selected":""} onClick={()=>setActiveTab("lost")}>Lost</button><button className={activeTab==="found"?"selected":""} onClick={()=>setActiveTab("found")}>Found</button></div></div>{activeTab === "mine" && <div className="my-listing-status-filter" role="group" aria-label="My listing status"><button className={myListingView === "active" ? "selected" : ""} onClick={() => setMyListingView("active")}>Active</button><button className={myListingView === "closed" ? "selected" : ""} onClick={() => setMyListingView("closed")}>Closed ({items.filter(i => i.contact_email?.toLowerCase() === profile?.email?.toLowerCase() && i.is_closed).length})</button></div>}
                 {notice && <div className="notice"><Check size={16}/><span>{notice}</span><button onClick={()=>setNotice("")}><X size={15}/></button></div>}
                 {visibleItems.length===0 ? <div className="empty-state"><div className="empty-icon"><Search size={24}/></div><h3>No items found</h3><p>Try another search or category, or be the first to post one.</p><button className="primary-btn" onClick={()=>{setFormStatus("lost");setShowForm(true)}}><Plus size={16}/> Create a listing</button></div> :
-                  <div className="items-grid">{visibleItems.map((item,index)=><article className="item-card" key={item.id}><div className={`item-art art-${index%6}`}>{item.image_url?<img src={item.image_url} alt={item.title}/>:<ItemIcon category={item.category}/>}<span className={`status-pill ${item.status}`}>{item.status==="lost"?<><Search size={12}/> LOST</>:<><Check size={12}/> FOUND</>}</span><button className="save-item" title="Listing details"><Eye size={16}/></button></div><div className="item-content"><div className="item-category">{item.category}</div><h3>{item.title}</h3><p className="item-description">{item.description}</p><div className="item-meta"><span><MapPin size={14}/>{item.location}</span><span><Clock3 size={14}/>{dateLabel(item.item_date)}</span></div><div className="item-card-bottom"><div className="item-owner"><div className="avatar small-avatar">{initials(item.contact_name || "C")}</div><div><strong>{item.contact_name || "Campus member"}</strong><span>Campus member</span></div></div><a className="whatsapp-btn" href={whatsappUrl(item.phone,item.title)} target="_blank" rel="noreferrer" aria-label={`Contact ${item.contact_name} on WhatsApp`}><MessageCircle size={16}/> WhatsApp</a></div></div></article>)}</div>
+                  <div className="items-grid">{visibleItems.map((item,index)=><article className="item-card" key={item.id}><div className={`item-art art-${index%6}`}>{item.image_url?<img src={item.image_url} alt={item.title}/>:<ItemIcon category={item.category}/>}<span className={`status-pill ${item.is_closed ? "closed" : item.status}`}>{item.is_closed ? <><Check size={12}/> CLOSED</> : item.status==="lost"?<><Search size={12}/> LOST</>:<><Check size={12}/> FOUND</>}</span><button type="button" className="save-item" title="View full image" aria-label={`View full image of ${item.title}`} onClick={() => setImagePreviewItem(item)}><Eye size={16}/></button></div><div className="item-content"><div className="item-category">{item.category}</div><h3>{item.title}</h3><p className="item-description">{item.description}</p><div className="item-meta"><span><MapPin size={14}/>{item.location}</span><span><Clock3 size={14}/>{dateLabel(item.item_date)}</span></div><div className="item-card-bottom"><div className="item-owner"><div className="avatar small-avatar">{initials(item.contact_name || "C")}</div><div><strong>{item.contact_name || "Campus member"}</strong><span>Campus member</span></div></div>{activeTab === "mine" ? <button type="button" className={`listing-status-action ${item.is_closed ? "reopen" : "close"}`} onClick={() => void setListingClosed(item, !item.is_closed)}>{item.is_closed ? <><ArrowLeft size={15}/> Reopen request</> : <><Check size={15}/> Close request</>}</button> : !item.is_closed && <a className="whatsapp-btn" href={whatsappUrl(item.phone,item.title)} target="_blank" rel="noreferrer" aria-label={`Contact ${item.contact_name} on WhatsApp`}><MessageCircle size={16}/> WhatsApp</a>}</div></div></article>)}</div>
                 }
               </section>
               <footer className="page-footer"><span>Made with <span className="footer-heart">♥</span> for campus kindness.</span><span><ShieldCheck size={13}/> Be kind. Verify before you meet.</span></footer>
@@ -313,6 +349,7 @@ export default function App() {
           </main>
         </div>
       )}
+      {imagePreviewItem && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={`Full image of ${imagePreviewItem.title}`} onMouseDown={e => { if (e.target === e.currentTarget) setImagePreviewItem(null); }}><button type="button" className="image-lightbox-close" onClick={() => setImagePreviewItem(null)} aria-label="Close image preview"><X size={22}/></button>{imagePreviewItem.image_url ? <img className="image-lightbox-image" src={imagePreviewItem.image_url} alt={imagePreviewItem.title} /> : <div className="image-lightbox-empty"><ItemIcon category={imagePreviewItem.category}/><p>No photo is available for this listing.</p></div>}<div className="image-lightbox-caption"><strong>{imagePreviewItem.title}</strong><span>{imagePreviewItem.category} · {imagePreviewItem.is_closed ? "CLOSED" : imagePreviewItem.status.toUpperCase()}</span></div></div>}
       {showForm && <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setShowForm(false)}}><section className="report-modal"><div className="modal-head"><div><div className="eyebrow">COMMUNITY CONTRIBUTION</div><h2>Let’s get it back home.</h2><p className="muted">A few details can make someone’s day.</p></div><button className="icon-btn" onClick={()=>setShowForm(false)}><X size={19}/></button></div><div className="form-tabs"><button className={formStatus==="lost"?"form-tab-active":""} onClick={()=>setFormStatus("lost")}><Search size={16}/> I lost something</button><button className={formStatus==="found"?"form-tab-active":""} onClick={()=>setFormStatus("found")}><HeartHandshake size={16}/> I found something</button></div><form className="report-form" onSubmit={saveItem}><div className="form-grid"><label>Category *<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></label><label>Campus location *<input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="e.g. Library, Block A" required maxLength={120}/></label><label>Date {formStatus==="lost"?"lost":"found"}<input type="date" value={form.item_date} onChange={e=>setForm({...form,item_date:e.target.value})} max={new Date().toISOString().slice(0,10)}/></label><label>Phone number *<input type="tel" value={form.phone || profile?.phone || authPhone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+91 98765 43210" required/><small>Used to coordinate return via WhatsApp.</small></label><div className="photo-upload-field"><span className="photo-upload-label">Photo of the item <span className="required-mark">*</span></span><input id="item-photo-input" className="photo-file-input" type="file" accept="image/*" capture="environment" onChange={e=>handlePhotoChange(e.target.files?.[0])}/>{photoPreview ? <div className="photo-preview-card"><img src={photoPreview} alt="Selected item preview"/><div className="photo-preview-actions"><span>{photoFile?.name}</span><div><label className="photo-action-btn" htmlFor="item-photo-input">Replace photo</label><button type="button" className="photo-action-btn photo-remove-btn" onClick={clearPhoto}>Remove</button></div></div></div> : <label className="photo-dropzone" htmlFor="item-photo-input"><span className="photo-upload-icon"><Upload size={23}/></span><strong>Tap to upload a photo</strong><span>Choose from your camera or gallery</span><small>JPG, PNG or WebP · Maximum 5 MB</small></label>}</div></div><div className="privacy-note"><ShieldCheck size={17}/><span>Your phone number is shown to other campus members so they can coordinate. Only post contact details you’re comfortable sharing.</span></div><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>setShowForm(false)}>Cancel</button><button className="primary-btn" disabled={formBusy}>{formBusy?"Publishing…":<>{formStatus==="lost"?"Post lost item":"Post found item"} <ArrowRight size={16}/></>}</button></div></form></section></div>}
     </div>
   );
